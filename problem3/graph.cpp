@@ -45,7 +45,20 @@ bool Graph::isConnect(int v1, int v2){
     if(this->distances[v1][v2] > 0){
         flag = true;
     }
+    
     return flag;
+}
+
+int Graph::f(vector<int> genome){
+    int score = 0;
+    for(int i = 1; i < genome.size(); i++){
+        if(distances[genome[i-1]][genome[i]] == -1){
+            score += 1000000;
+        } else {
+            score += distances[genome[i-1]][genome[i]];
+        }
+    }
+    return score;
 }
 
 // permuting genes to create the fittest.
@@ -63,6 +76,27 @@ vector<int> Graph::permute(vector<int> * genome){
     return *genome;
 }
 
+vector<int> Graph::doMutation(vector<int> * genome){
+    srand (time(NULL));
+    for(int k = 0; k < mutProb; k++){
+        int i = rand() % 9 + 1;
+        int j = rand() % 9 + 1;
+        int aux = (*genome)[i];
+        (*genome)[i] = (*genome)[j];
+        (*genome)[j] = aux;
+    }
+    return *genome;
+}
+
+// generating the gene pool
+vector<vector<int>> Graph::getGenePool(vector<int> genome){
+    vector<vector<int>> pool;
+    for(int i=0; i < 50; i++){
+        pool.push_back(genome);
+    }
+    return pool;
+}
+
 // getting the fitness score.
 int Graph::getFitness(vector<int> genome){
     int score = 0;
@@ -76,16 +110,54 @@ int Graph::getFitness(vector<int> genome){
     return score;
 }
 
+vector<int> Graph::getFittest(vector<vector<int>> pool){
+    vector<int> fittest = pool.front();
+    for(int i = 1; i < pool.size(); i++){
+        if(getFitness(fittest) < getFitness(pool[i])){
+            if(getFitness(fittest) == 10 && getFitness(pool[i]) == 10){
+                if(f(pool[i]) < f(fittest)){
+                    fittest = pool[i];
+                }
+            } else {
+                fittest = pool[i];
+            }
+        }
+    }
+    return fittest;
+}
+
+float Graph::evaluate(int score1, int score2){
+    return float(score1)/float(score2);
+}
+
 int Graph::travel(int start){
+    // creating start node
     start = start - 1;
     curr = new Node(start);
     curr->setPrev(NULL);
     
+    // creating 'zero' generation
+    int numGen = 0;
     vector<int> genome = generateGenome(start);
-    while(getFitness(genome) < 9){
-        permute(&genome);
-        cout << getFitness(genome) << endl;
-    }
+    mutProb = int(genome.size());
+    vector<int> fittest = genome;
+    
+    do {
+        genome = fittest;
+        numGen++;
+        vector<vector<int>> pool = getGenePool(genome);
+        for(int i = 0; i < pool.size(); i++){
+            doMutation(&pool[i]);
+            permute(&pool[i]);
+        }
+        fittest = getFittest(pool);
+    } while(getFitness(fittest) < 10);
+    
+    genome = fittest;
+    
+    cout << "n of generations: " << numGen << endl;
+    cout << "fitness: " << getFitness(genome);
+    cout << ", score: " << f(genome) << endl;
     
     vector<int>::iterator itg = genome.begin();
     while(itg != genome.end()){
