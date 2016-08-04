@@ -136,35 +136,61 @@ int Graph::travel(int start){
     curr = new Node(start);
     curr->setPrev(NULL);
     
+    vector<vector<int>> elite;
+    
     // creating 'zero' generation
     int numGen = 0;
     vector<int> genome = generateGenome(start);
     mutProb = int(genome.size());
     vector<int> fittest = genome;
     
-    do {
-        genome = fittest;
+    while(true) {
         numGen++;
         vector<vector<int>> pool = getGenePool(genome);
         for(int i = 0; i < pool.size(); i++){
             doMutation(&pool[i]);
             permute(&pool[i]);
         }
+        
         fittest = getFittest(pool);
-    } while(getFitness(fittest) < 10);
-    
-    genome = fittest;
+        
+        if(getFitness(fittest) > getFitness(genome)){
+            mutProb--;
+        } else {
+            mutProb++;
+        }
+        
+        genome = fittest;
+        
+        if(getFitness(genome) == 10 && elite.size() < 100){
+            elite.push_back(genome);
+        } else if(elite.size() == 100){
+            break;
+        }
+    }
     
     cout << "n of generations: " << numGen << endl;
-    cout << "fitness: " << getFitness(genome);
-    cout << ", score: " << f(genome) << endl;
     
-    vector<int>::iterator itg = genome.begin();
-    while(itg != genome.end()){
-        cout << "," << *itg + 1;
+    vector<vector<int>>::iterator itg = elite.begin();
+    while(itg != elite.end()){
+        if(f(*itg) < f(fittest)){
+            fittest = *itg;
+        }
+        
+        cout << "fitness: " << getFitness(*itg);
+        cout << ", score: " << f(*itg) << endl;
+        
         itg++;
     }
+    
+    vector<int>::iterator itf = fittest.begin();
+    while(itf != fittest.end()){
+        cout << "," << *itf + 1;
+        itf++;
+    }
     cout << endl;
+    cout << "fitness: " << getFitness(fittest);
+    cout << ", score: " << f(fittest) << endl;
     
     return 0;
 }
